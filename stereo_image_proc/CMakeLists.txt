@@ -15,6 +15,12 @@ catkin_package(
 
 include_directories(include)
 
+find_package(CUDA)
+if (CUDA_FOUND)
+  message("###### ------- ######     The CUDA is Strong with This One.     ###### ------ ######")
+  add_definitions("-DCUDA_GPU=1")
+endif(CUDA_FOUND)
+
 find_package(OpenCV REQUIRED)
 if (OpenCV_VERSION VERSION_EQUAL "3")
   add_definitions("-DOPENCV3=1")
