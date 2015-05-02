@@ -37,6 +37,9 @@
 #include <cmath>
 #include <limits>
 
+cv::gpu::GpuMat d_left, d_right, d_disp;
+cv::gpu::StereoBM_GPU block_matcher_;
+
 namespace stereo_image_proc {
 
 bool StereoProcessor::process(const sensor_msgs::ImageConstPtr& left_raw,
@@ -88,11 +91,20 @@ void StereoProcessor::processDisparity(const cv::Mat& left_rect, const cv::Mat& 
   static const int DPP = 16; // disparities per pixel
   static const double inv_dpp = 1.0 / DPP;
 
+  // Cuda uses gpu::GpuMat for disparity store
+#if CUDA_GPU
+  // upload to gpu
+  d_left.upload(left_rect);
+  d_right.upload(right_rect);
+  block_matcher_(d_left, d_right, d_disp);
+  d_disp.download(disparity16_);
+#else
   // Block matcher produces 16-bit signed (fixed point) disparity image
 #if OPENCV3
   block_matcher_->compute(left_rect, right_rect, disparity16_);
 #else
   block_matcher_(left_rect, right_rect, disparity16_);
+#endif
 #endif
 
   // Fill in DisparityImage image data, converting to 32-bit float
