@@ -154,10 +154,14 @@ private:
   image_proc::Processor mono_processor_;
   
   mutable cv::Mat_<int16_t> disparity16_; // scratch buffer for 16-bit signed disparity image
+#if CUDA_GPU
+  mutable cv::gpu::StereoBM_GPU block_matcher_;
+#else
 #if OPENCV3
   mutable cv::Ptr<cv::StereoBM> block_matcher_; // contains scratch buffers for block matching
 #else
   mutable cv::StereoBM block_matcher_; // contains scratch buffers for block matching
+#endif
 #endif
   // scratch buffers for speckle filtering
   mutable cv::Mat_<uint32_t> labels_;
