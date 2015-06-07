@@ -64,7 +64,7 @@ public:
   StereoProcessor()
 #if CUDA_GPU
   {
-    block_matcher_ = cv::gpu::StereoBM_GPU();
+    block_matcher_ = cv::gpu::StereoBM_GPU(0,64,23);
 #else
 #if OPENCV3
   {
@@ -154,9 +154,7 @@ private:
   image_proc::Processor mono_processor_;
   
   mutable cv::Mat_<int16_t> disparity16_; // scratch buffer for 16-bit signed disparity image
-#if CUDA_GPU
-  mutable cv::gpu::StereoBM_GPU block_matcher_;
-#else
+#if !CUDA_GPU
 #if OPENCV3
   mutable cv::Ptr<cv::StereoBM> block_matcher_; // contains scratch buffers for block matching
 #else
@@ -185,7 +183,7 @@ inline void StereoProcessor::setInterpolation(int interp)
 inline int StereoProcessor::getPreFilterSize() const
 {
 #if CUDA_GPU
-  return block_matcher_.winSize;
+  return 0;//block_matcher_.winSize;
 #else
 #if OPENCV3
   return block_matcher_->getPreFilterSize();
@@ -198,7 +196,7 @@ inline int StereoProcessor::getPreFilterSize() const
 inline void StereoProcessor::setPreFilterSize(int size)
 {
 #if CUDA_GPU
-  block_matcher_.winSize = size;
+  //block_matcher_.winSize = size;
 #else
 #if OPENCV3
   block_matcher_->setPreFilterSize(size);
@@ -289,7 +287,8 @@ inline void StereoProcessor::setMinDisparity(int min_d)
 inline int StereoProcessor::getDisparityRange() const
 {
 #if CUDA_GPU
-  return block_matcher_.ndisp;
+  //return block_matcher_.ndisp;
+  return 0;
 #else
 #if OPENCV3
   return block_matcher_->getNumDisparities();
@@ -302,7 +301,7 @@ inline int StereoProcessor::getDisparityRange() const
 inline void StereoProcessor::setDisparityRange(int range)
 {
 #if CUDA_GPU
-  block_matcher_.ndisp = range;
+  //block_matcher_.ndisp = range;
 #else
 #if OPENCV3
   block_matcher_->setNumDisparities(range);
@@ -314,6 +313,7 @@ inline void StereoProcessor::setDisparityRange(int range)
 
 inline int StereoProcessor::getTextureThreshold() const
 {
+
 #if CUDA_GPU
   return (int)block_matcher_.avergeTexThreshold;
 #else

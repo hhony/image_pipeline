@@ -37,9 +37,11 @@
 #include <cmath>
 #include <limits>
 
+
+#if CUDA_GPU
 cv::gpu::GpuMat d_left, d_right, d_disp;
 cv::gpu::StereoBM_GPU block_matcher_;
-
+#endif
 namespace stereo_image_proc {
 
 bool StereoProcessor::process(const sensor_msgs::ImageConstPtr& left_raw,
@@ -88,17 +90,22 @@ void StereoProcessor::processDisparity(const cv::Mat& left_rect, const cv::Mat& 
                                        stereo_msgs::DisparityImage& disparity) const
 {
   // Fixed-point disparity is 16 times the true value: d = d_fp / 16.0 = x_l - x_r.
-  static const int DPP = 16; // disparities per pixel
-  static const double inv_dpp = 1.0 / DPP;
 
   // Cuda uses gpu::GpuMat for disparity store
 #if CUDA_GPU
+
+  static const int DPP = 1;
+  static const double inv_dpp = 1.0 / DPP;
   // upload to gpu
   d_left.upload(left_rect);
   d_right.upload(right_rect);
   block_matcher_(d_left, d_right, d_disp);
+//  d_disp.convertTo(d_disp,CV_16S);
   d_disp.download(disparity16_);
 #else
+
+  static const int DPP = 16;
+  static const double inv_dpp = 1.0/DPP;
   // Block matcher produces 16-bit signed (fixed point) disparity image
 #if OPENCV3
   block_matcher_->compute(left_rect, right_rect, disparity16_);
@@ -128,8 +135,8 @@ void StereoProcessor::processDisparity(const cv::Mat& left_rect, const cv::Mat& 
   /// @todo Window of (potentially) valid disparities
 
   // Disparity search range
-  disparity.min_disparity = getMinDisparity();
-  disparity.max_disparity = getMinDisparity() + getDisparityRange() - 1;
+  disparity.min_disparity = 0;//getMinDisparity();
+  disparity.max_disparity = 63;//getMinDisparity() + getDisparityRange() - 1;
   disparity.delta_d = inv_dpp;
 }
 
