@@ -6,7 +6,8 @@ catkin_package()
 
 find_package(Boost REQUIRED COMPONENTS signals thread)
 find_package(OpenCV REQUIRED)
-if (OpenCV_VERSION VERSION_EQUAL "3")
+if (OpenCV_VERSION_MAJOR VERSION_EQUAL "3")
+  message(STATUS "###### ------ OpenCV 3 enabled.")
   add_definitions("-DOPENCV3=1")
 endif()
 

@@ -10,7 +10,8 @@ catkin_package(
 find_package(Boost REQUIRED)
 find_package(Eigen REQUIRED)
 find_package(OpenCV)
-if (OpenCV_VERSION VERSION_EQUAL "3")
+if (OpenCV_VERSION_MAJOR VERSION_EQUAL "3")
+  message(STATUS "###### ------ OpenCV 3 enabled.")
   add_definitions("-DOPENCV3=1")
 endif()
 include_directories(include

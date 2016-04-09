@@ -17,12 +17,13 @@ include_directories(include)
 
 find_package(CUDA)
 if (CUDA_FOUND)
-  message("###### ------- ######     The CUDA is Strong with This One.     ###### ------ ######")
+  message(STATUS "###### ------- The CUDA is Strong with This One.")
   add_definitions("-DCUDA_GPU=1")
 endif(CUDA_FOUND)
 
 find_package(OpenCV REQUIRED)
-if (OpenCV_VERSION VERSION_EQUAL "3")
+if (OpenCV_VERSION_MAJOR VERSION_EQUAL "3")
+  message(STATUS "###### ------ OpenCV 3 enabled.")
   add_definitions("-DOPENCV3=1")
 endif()
 include_directories(SYSTEM ${catkin_INCLUDE_DIRS}
