@@ -41,9 +41,16 @@
 #include <sensor_msgs/PointCloud2.h>
 
 #if CUDA_GPU
+
+#if OPENCV3
+#include "opencv2/cudastereo.hpp"
+extern cv::Ptr<cv::StereoBM> block_matcher_;
+#else
 #include "opencv2/gpu/gpu.hpp"
 extern cv::gpu::GpuMat d_left, d_right, d_disp;
 extern cv::gpu::StereoBM_GPU block_matcher_;
+#endif
+
 #endif
 
 namespace stereo_image_proc {
@@ -62,17 +69,26 @@ class StereoProcessor
 public:
   
   StereoProcessor()
+#if OPENCV3
+
+#if CUDA_GPU
+  {
+    block_matcher_ = cv::cuda::createStereoBM(64,23);
+#else
+  {
+    block_matcher_ = cv::StereoBM::create();
+#endif
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   {
     block_matcher_ = cv::gpu::StereoBM_GPU(0,64,23);
 #else
-#if OPENCV3
-  {
-    block_matcher_ = cv::StereoBM::create();
-#else
     : block_matcher_(cv::StereoBM::BASIC_PRESET)
   {
 #endif
+
 #endif
   }
 
@@ -154,12 +170,15 @@ private:
   image_proc::Processor mono_processor_;
   
   mutable cv::Mat_<int16_t> disparity16_; // scratch buffer for 16-bit signed disparity image
+
 #if !CUDA_GPU
+
 #if OPENCV3
   mutable cv::Ptr<cv::StereoBM> block_matcher_; // contains scratch buffers for block matching
 #else
   mutable cv::StereoBM block_matcher_; // contains scratch buffers for block matching
 #endif
+
 #endif
   // scratch buffers for speckle filtering
   mutable cv::Mat_<uint32_t> labels_;
@@ -182,237 +201,308 @@ inline void StereoProcessor::setInterpolation(int interp)
 
 inline int StereoProcessor::getPreFilterSize() const
 {
-#if CUDA_GPU
-  return 0;//block_matcher_.winSize;
-#else
+
 #if OPENCV3
+
   return block_matcher_->getPreFilterSize();
+
+#else // opencv 2.4
+
+#if CUDA_GPU
+  return 0; //block_matcher_.winSize;
 #else
   return block_matcher_.state->preFilterSize;
 #endif
+
 #endif
 }
 
 inline void StereoProcessor::setPreFilterSize(int size)
 {
-#if CUDA_GPU
-  //block_matcher_.winSize = size;
-#else
 #if OPENCV3
+
   block_matcher_->setPreFilterSize(size);
+
+#else // opencv 2.4
+
+#if CUDA_GPU
+  block_matcher_.winSize = size;
 #else
   block_matcher_.state->preFilterSize = size;
 #endif
+
 #endif
 }
 
 inline int StereoProcessor::getPreFilterCap() const
 {
+#if OPENCV3
+
+  return block_matcher_->getPreFilterCap();
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   return 0;
 #else
-#if OPENCV3
-  return block_matcher_->getPreFilterCap();
-#else
   return block_matcher_.state->preFilterCap;
 #endif
+
 #endif
 }
 
 inline void StereoProcessor::setPreFilterCap(int cap)
 {
+#if OPENCV3
+
+  block_matcher_->setPreFilterCap(cap);
+
+#else
+
 #if CUDA_GPU
   return;
 #else
-#if OPENCV3
-  block_matcher_->setPreFilterCap(cap);
-#else
   block_matcher_.state->preFilterCap = cap;
 #endif
+
 #endif
 }
 
 inline int StereoProcessor::getCorrelationWindowSize() const
 {
+#if OPENCV3
+
+  return block_matcher_->getBlockSize();
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   return block_matcher_.winSize;
 #else
-#if OPENCV3
-  return block_matcher_->getBlockSize();
-#else
   return block_matcher_.state->SADWindowSize;
 #endif
+
 #endif
 }
 
 inline void StereoProcessor::setCorrelationWindowSize(int size)
 {
+#if OPENCV3
+
+  block_matcher_->setBlockSize(size);
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   block_matcher_.winSize = size;
 #else
-#if OPENCV3
-  block_matcher_->setBlockSize(size);
-#else
   block_matcher_.state->SADWindowSize = size;
 #endif
+
 #endif
 }
 
 inline int StereoProcessor::getMinDisparity() const
 {
+#if OPENCV3
+
+  return block_matcher_->getMinDisparity();
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   return block_matcher_.ndisp;
 #else
-#if OPENCV3
-  return block_matcher_->getMinDisparity();
-#else
   return block_matcher_.state->minDisparity;
 #endif
+
 #endif
 }
 
 inline void StereoProcessor::setMinDisparity(int min_d)
 {
+#if OPENCV3
+
+  block_matcher_->setMinDisparity(min_d);
+
+#else
+
 #if CUDA_GPU
   block_matcher_.ndisp = min_d;
 #else
-#if OPENCV3
-  block_matcher_->setMinDisparity(min_d);
-#else
   block_matcher_.state->minDisparity = min_d;
 #endif
+
 #endif
 }
 
 inline int StereoProcessor::getDisparityRange() const
 {
-#if CUDA_GPU
-  //return block_matcher_.ndisp;
-  return 0;
-#else
 #if OPENCV3
+
   return block_matcher_->getNumDisparities();
+
+#else // opencv 2.4
+
+#if CUDA_GPU
+  return 0; //return block_matcher_.ndisp;
 #else
   return block_matcher_.state->numberOfDisparities;
 #endif
+
 #endif
 }
 
 inline void StereoProcessor::setDisparityRange(int range)
 {
-#if CUDA_GPU
-  //block_matcher_.ndisp = range;
-#else
 #if OPENCV3
+
   block_matcher_->setNumDisparities(range);
+
+#else // opencv 2.4
+
+#if CUDA_GPU
+  block_matcher_.ndisp = range;
 #else
   block_matcher_.state->numberOfDisparities = range;
 #endif
+
 #endif
 }
 
 inline int StereoProcessor::getTextureThreshold() const
 {
+#if OPENCV3
+
+  return block_matcher_->getTextureThreshold();
+
+#else // opencv 2.4
 
 #if CUDA_GPU
   return (int)block_matcher_.avergeTexThreshold;
 #else
-#if OPENCV3
-  return block_matcher_->getTextureThreshold();
-#else
   return block_matcher_.state->textureThreshold;
 #endif
+
 #endif
 }
 
 inline void StereoProcessor::setTextureThreshold(int threshold)
 {
+#if OPENCV3
+
+  block_matcher_->setTextureThreshold(threshold);
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   block_matcher_.avergeTexThreshold = (float)threshold;
 #else
-#if OPENCV3
-  block_matcher_->setTextureThreshold(threshold);
-#else
   block_matcher_.state->textureThreshold = threshold;
 #endif
+
 #endif
 }
 
 inline float StereoProcessor::getUniquenessRatio() const
 {
+#if OPENCV3
+
+  return block_matcher_->getUniquenessRatio();
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   return 0;
 #else
-#if OPENCV3
-  return block_matcher_->getUniquenessRatio();
-#else
   return block_matcher_.state->uniquenessRatio;
 #endif
+
 #endif
 }
 
 inline void StereoProcessor::setUniquenessRatio(float ratio)
 {
+#if OPENCV3
+
+  block_matcher_->setUniquenessRatio(ratio);
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   return;
 #else
-#if OPENCV3
-  block_matcher_->setUniquenessRatio(ratio);
-#else
   block_matcher_.state->uniquenessRatio = ratio;
 #endif
+
 #endif
 }
 
 inline int StereoProcessor::getSpeckleSize() const
 {
+#if OPENCV3
+
+  return block_matcher_->getSpeckleWindowSize();
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   return 0;
 #else
-#if OPENCV3
-  return block_matcher_->getSpeckleWindowSize();
-#else
   return block_matcher_.state->speckleWindowSize;
 #endif
+
 #endif
 }
 
 inline void StereoProcessor::setSpeckleSize(int size)
 {
+#if OPENCV3
+
+  block_matcher_->setSpeckleWindowSize(size);
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   return;
 #else
-#if OPENCV3
-  block_matcher_->setSpeckleWindowSize(size);
-#else
   block_matcher_.state->speckleWindowSize = size;
 #endif
+
 #endif
 }
 
 inline int StereoProcessor::getSpeckleRange() const
 {
+#if OPENCV3
+
+  return block_matcher_->getSpeckleRange();
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   return 0;
 #else
-#if OPENCV3
-  return block_matcher_->getSpeckleRange();
-#else
   return block_matcher_.state->speckleRange;
 #endif
+
 #endif
 }
 
 inline void StereoProcessor::setSpeckleRange(int range)
 {
+#if OPENCV3
+
+  block_matcher_->setSpeckleRange(range);
+
+#else // opencv 2.4
+
 #if CUDA_GPU
   return;
 #else
-#if OPENCV3
-  block_matcher_->setSpeckleRange(range);
-#else
   block_matcher_.state->speckleRange = range;
 #endif
+
 #endif
 }
 
